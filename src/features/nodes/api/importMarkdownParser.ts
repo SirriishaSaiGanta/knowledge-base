@@ -236,3 +236,19 @@ export function parseMarkdownImport(title: string, markdown: string): ImportNode
     children,
   };
 }
+
+/**
+ * Lightweight sibling to parseMarkdownImport for when you're only sketching
+ * an outline of topic names — no "# Children" wrapper and no content-section
+ * headings needed. The entire pasted document is treated as the children
+ * outline directly, reusing the same outline-to-tree machinery.
+ */
+export function parseNamesOnlyImport(title: string, markdown: string): ImportNode {
+  const outline = flattenChildrenHeadings(buildHeadingTree(markdown));
+  const children = outlineToImportNodes(outline);
+
+  return {
+    title: title.trim(),
+    children: children.length > 0 ? children : undefined,
+  };
+}

@@ -5,6 +5,7 @@ import {
   useNodes,
   parseImportPayload,
   parseMarkdownImport,
+  parseNamesOnlyImport,
   importTree,
   flattenTree,
   type ImportNode,
@@ -23,6 +24,7 @@ export interface ImportDialogProps {
 }
 
 type ImportFormat = 'markdown' | 'json';
+type ContentMode = 'full' | 'namesOnly';
 
 const TOP_LEVEL_HEADINGS = [
   'Description',
@@ -56,11 +58,23 @@ function buildMarkdownTemplate(existingChildNames: string[]): string {
   return lines.join('\n');
 }
 
+/** No "# Children" wrapper needed — the whole document is the outline, existing names included at the top level. */
+function buildNamesOnlyTemplate(existingChildNames: string[]): string {
+  const lines: string[] = [];
+  for (const name of existingChildNames) {
+    lines.push(`# ${name}`);
+  }
+  if (existingChildNames.length > 0) lines.push('');
+  lines.push('# Example Topic', '## Example Subtopic', '### Example Sub-subtopic', '');
+  return lines.join('\n');
+}
+
 export function ImportDialog({ open, defaultParentId = null, onClose }: ImportDialogProps) {
   const { nodes, tree, createNode, addSection } = useNodes();
   const tags = useTags();
 
   const [format, setFormat] = useState<ImportFormat>('markdown');
+  const [contentMode, setContentMode] = useState<ContentMode>('full');
   const [title, setTitle] = useState('');
   const [raw, setRaw] = useState('');
   const [parsed, setParsed] = useState<ImportNode | null>(null);
@@ -96,7 +110,11 @@ export function ImportDialog({ open, defaultParentId = null, onClose }: ImportDi
 
   function handleInsertTemplate() {
     const existingChildNames = nodes.filter((node) => node.parentId === parentId).map((node) => node.title);
-    setRaw(buildMarkdownTemplate(existingChildNames));
+    setRaw(
+      contentMode === 'full'
+        ? buildMarkdownTemplate(existingChildNames)
+        : buildNamesOnlyTemplate(existingChildNames),
+    );
   }
 
   function handleValidate() {
@@ -110,7 +128,7 @@ export function ImportDialog({ open, defaultParentId = null, onClose }: ImportDi
         setErrors([{ path: 'title', message: 'Title is required for markdown imports' }]);
         return;
       }
-      setParsed(parseMarkdownImport(title, raw));
+      setParsed(contentMode === 'full' ? parseMarkdownImport(title, raw) : parseNamesOnlyImport(title, raw));
       setErrors([]);
     }
     setSummary(null);
@@ -207,17 +225,28 @@ export function ImportDialog({ open, defaultParentId = null, onClose }: ImportDi
 
         {format === 'markdown' ? (
           <div className="import-source">
+            <label>
+              What are you adding?
+              <select value={contentMode} onChange={(event) => setContentMode(event.target.value as ContentMode)}>
+                <option value="full">Full topic (content sections + children)</option>
+                <option value="namesOnly">Just topic names (outline only, no content)</option>
+              </select>
+            </label>
             <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Topic title" />
             <div className="import-source-toolbar">
               <Button type="button" variant="ghost" onClick={handleInsertTemplate}>
-                Insert heading template
+                Insert {contentMode === 'full' ? 'heading' : 'example'} template
               </Button>
             </div>
             <Textarea
               rows={12}
               value={raw}
               onChange={(event) => setRaw(event.target.value)}
-              placeholder="Paste markdown here, using the documented headings (# Description, # Detailed Explanation, ...)"
+              placeholder={
+                contentMode === 'full'
+                  ? 'Paste markdown here, using the documented headings (# Description, # Detailed Explanation, ...)'
+                  : 'Paste a nested outline of topic names here — just headings, e.g. "# Topic" / "## Subtopic"'
+              }
               className="import-json-input"
             />
           </div>

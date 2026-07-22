@@ -9,7 +9,7 @@ type DropZone = 'before' | 'inside' | 'after';
 
 export function NodeTreeItem({ node, depth }: { node: TreeNode; depth: number }) {
   const { id: activeId } = useParams<{ id: string }>();
-  const { createNode, moveNode } = useNodes();
+  const { nodes, createNode, moveNode } = useNodes();
   const { isExpanded, toggle } = useNodeExpansion();
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -54,9 +54,19 @@ export function NodeTreeItem({ node, depth }: { node: TreeNode; depth: number })
     if (zone === 'inside') {
       moveNode(draggedId, node.id, node.children.length);
       if (!expanded) toggle(node.id);
-    } else {
-      moveNode(draggedId, node.parentId, zone === 'before' ? node.order : node.order + 1);
+      return;
     }
+
+    // moveNode's index is relative to the sibling list *after* the dragged
+    // node is removed from it — if it's currently a sibling of the target
+    // positioned earlier than it, removing it shifts the target's index
+    // down by one, so that has to be accounted for here.
+    const draggedNode = nodes.find((item) => item.id === draggedId);
+    const isCurrentSibling = draggedNode?.parentId === node.parentId;
+    const shift = isCurrentSibling && draggedNode!.order < node.order ? -1 : 0;
+    const targetIndex = node.order + shift;
+
+    moveNode(draggedId, node.parentId, zone === 'before' ? targetIndex : targetIndex + 1);
   }
 
   return (
