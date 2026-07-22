@@ -18,8 +18,10 @@ import { ImportPreviewTree } from './ImportPreviewTree';
 
 export interface ImportDialogProps {
   open: boolean;
-  /** Preselected destination when the dialog opens; the user can change it before importing. */
+  /** Preselected destination when the dialog opens; the user can change it before importing (unless locked). */
   defaultParentId?: ID | null;
+  /** When true, the destination picker and conflict-strategy option are hidden — imports always target defaultParentId. */
+  lockDestination?: boolean;
   onClose: () => void;
 }
 
@@ -69,7 +71,7 @@ function buildNamesOnlyTemplate(existingChildNames: string[]): string {
   return lines.join('\n');
 }
 
-export function ImportDialog({ open, defaultParentId = null, onClose }: ImportDialogProps) {
+export function ImportDialog({ open, defaultParentId = null, lockDestination = false, onClose }: ImportDialogProps) {
   const { nodes, tree, createNode, addSection } = useNodes();
   const tags = useTags();
 
@@ -163,44 +165,52 @@ export function ImportDialog({ open, defaultParentId = null, onClose }: ImportDi
   return (
     <Modal open={open} onClose={handleClose} title="Import topics">
       <div className="import-dialog">
-        <fieldset className="import-destination">
-          <legend>Import into</legend>
-          <div className="import-destination-options">
-            <label className="import-destination-option">
-              <input
-                type="radio"
-                name="import-destination"
-                checked={parentId === null}
-                onChange={() => setParentId(null)}
-              />
-              Root
-            </label>
-            {destinations.map((option) => (
-              <label key={option.id} className="import-destination-option" style={{ paddingLeft: option.depth * 16 }}>
-                <input
-                  type="radio"
-                  name="import-destination"
-                  checked={parentId === option.id}
-                  onChange={() => setParentId(option.id)}
-                />
-                {option.title}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        {!lockDestination && (
+          <>
+            <fieldset className="import-destination">
+              <legend>Import into</legend>
+              <div className="import-destination-options">
+                <label className="import-destination-option">
+                  <input
+                    type="radio"
+                    name="import-destination"
+                    checked={parentId === null}
+                    onChange={() => setParentId(null)}
+                  />
+                  Root
+                </label>
+                {destinations.map((option) => (
+                  <label
+                    key={option.id}
+                    className="import-destination-option"
+                    style={{ paddingLeft: option.depth * 16 }}
+                  >
+                    <input
+                      type="radio"
+                      name="import-destination"
+                      checked={parentId === option.id}
+                      onChange={() => setParentId(option.id)}
+                    />
+                    {option.title}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
-        <label>
-          If a topic already exists there
-          <select value={strategy} onChange={(event) => setStrategy(event.target.value as ConflictStrategy)}>
-            <option value="skip">Skip it (keep existing)</option>
-            <option value="replace" disabled>
-              Replace it (coming soon)
-            </option>
-            <option value="merge" disabled>
-              Merge into it (coming soon)
-            </option>
-          </select>
-        </label>
+            <label>
+              If a topic already exists there
+              <select value={strategy} onChange={(event) => setStrategy(event.target.value as ConflictStrategy)}>
+                <option value="skip">Skip it (keep existing)</option>
+                <option value="replace" disabled>
+                  Replace it (coming soon)
+                </option>
+                <option value="merge" disabled>
+                  Merge into it (coming soon)
+                </option>
+              </select>
+            </label>
+          </>
+        )}
 
         <div className="import-format-switcher" role="tablist" aria-label="Import format">
           <button

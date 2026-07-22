@@ -1,6 +1,7 @@
 import { LearningModeSwitcher, useNodeSearch } from "@features/nodes";
 import { ThemeToggle } from "@features/theme";
 import { useAuth } from "@features/auth";
+import { ImportButton } from "@features/import";
 
 export function Header() {
   const { query, setQuery } = useNodeSearch();
@@ -28,6 +29,8 @@ export function Header() {
             aria-label="Search"
           />
         </div>
+
+        <ImportButton label="Import" />
 
         <LearningModeSwitcher />
 

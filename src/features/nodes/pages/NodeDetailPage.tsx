@@ -1,12 +1,22 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader, ConfirmDialog } from '@shared/components/composite';
 import { Button, ErrorBoundary, Input } from '@shared/components/ui';
 import { useNodes } from '../hooks/useNodes';
 import { NodeViewer } from '../components/NodeViewer';
 import { NodeEditor } from '../components/NodeEditor';
+import type { KnowledgeNode } from '../types/Node';
 
-export function NodeDetailPage() {
+export interface NodeDetailPageProps {
+  /**
+   * Composition slot for app-level actions that need this node's id (e.g.
+   * "Import here") without features/nodes depending on features/import —
+   * same pattern as WorkspaceLayout's sidebarExtra.
+   */
+  renderExtraActions?: (node: KnowledgeNode) => ReactNode;
+}
+
+export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { nodes, renameNode, removeNode } = useNodes();
@@ -66,6 +76,7 @@ export function NodeDetailPage() {
               <Button variant="secondary" onClick={() => setIsEditing((value) => !value)}>
                 {isEditing ? 'Done editing' : 'Edit content'}
               </Button>
+              {renderExtraActions?.(node)}
               <Button variant="danger" onClick={() => setIsConfirmingDelete(true)}>
                 Delete
               </Button>

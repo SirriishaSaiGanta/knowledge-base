@@ -11,11 +11,20 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route element={<AuthenticatedLayout sidebarExtra={<ImportButton />} />}>
+        <Route element={<AuthenticatedLayout sidebarExtra={<ImportButton lockDestination />} />}>
           <Route path="/" element={<Navigate to="/nodes" replace />} />
 
           <Route path="/nodes" element={<NodesIndexPage />} />
-          <Route path="/nodes/:id" element={<NodeDetailPage />} />
+          <Route
+            path="/nodes/:id"
+            element={
+              <NodeDetailPage
+                renderExtraActions={(node) => (
+                  <ImportButton defaultParentId={node.id} lockDestination label="Import here" />
+                )}
+              />
+            }
+          />
 
           <Route path="/tags" element={<TagsPage />} />
         </Route>
