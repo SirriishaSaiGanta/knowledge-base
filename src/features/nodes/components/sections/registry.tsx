@@ -26,6 +26,8 @@ import { ScenarioQuestionsView } from './ScenarioQuestionsView';
 import { ScenarioQuestionsEdit } from './ScenarioQuestionsEdit';
 import { ReferencesView } from './ReferencesView';
 import { ReferencesEdit } from './ReferencesEdit';
+import { MarkdownSectionView } from './MarkdownSectionView';
+import { MarkdownSectionEdit } from './MarkdownSectionEdit';
 
 type ErasedViewProps = { content: unknown; theme: 'light' | 'dark' };
 type ErasedEditProps = { content: unknown; onChange: (content: unknown) => void };
@@ -44,6 +46,7 @@ const VIEWERS: Record<SectionType, ComponentType<ErasedViewProps>> = {
   interviewQuestions: InterviewQuestionsView,
   scenarioQuestions: ScenarioQuestionsView,
   references: ReferencesView,
+  markdown: MarkdownSectionView,
 } as unknown as Record<SectionType, ComponentType<ErasedViewProps>>;
 
 const EDITORS: Record<SectionType, ComponentType<ErasedEditProps>> = {
@@ -60,6 +63,7 @@ const EDITORS: Record<SectionType, ComponentType<ErasedEditProps>> = {
   interviewQuestions: InterviewQuestionsEdit,
   scenarioQuestions: ScenarioQuestionsEdit,
   references: ReferencesEdit,
+  markdown: MarkdownSectionEdit,
 } as unknown as Record<SectionType, ComponentType<ErasedEditProps>>;
 
 /**

@@ -1,7 +1,10 @@
 import type { ImportNode } from '@features/nodes';
 
 export function ImportPreviewTree({ node }: { node: ImportNode }) {
-  const sectionCount = Object.keys(node.sections ?? {}).length + (node.description?.trim() ? 1 : 0);
+  const sectionCount =
+    Object.keys(node.sections ?? {}).length +
+    (node.dynamicSections?.length ?? 0) +
+    (node.description?.trim() ? 1 : 0);
   const children = node.children ?? [];
 
   return (

@@ -112,6 +112,15 @@ export const SECTION_REGISTRY: AnySectionDefinition[] = [
     emptyContent: () => ({ items: [] }),
     isEmpty: (c) => c.items.length === 0,
   },
+  {
+    // Repeatable — a node can have any number of these. Its display title comes from the
+    // content itself (content.title), not this label; see SectionView/SectionEditor headers.
+    type: 'markdown',
+    label: 'Section',
+    modes: ['study', 'revision', 'interview'],
+    emptyContent: () => ({ title: '', body: '' }),
+    isEmpty: (c) => isBlank(c.title) && isBlank(c.body),
+  },
 ];
 
 export const SECTION_LABELS: Record<SectionType, string> = Object.fromEntries(

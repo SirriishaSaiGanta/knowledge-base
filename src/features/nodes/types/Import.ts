@@ -7,7 +7,12 @@ export interface ImportNode {
   title: string;
   description?: string;
   tags?: string[];
+  /** Legacy typed sections — only ever populated by the JSON import path (`sections` is keyed by
+   *  SectionType, so it can't hold more than one instance of a given type). */
   sections?: Partial<SectionContentMap>;
+  /** Ordered, repeatable, freeform sections — one per `#` heading in a Markdown import, in source
+   *  order. This is what the Markdown import path produces instead of `sections`. */
+  dynamicSections?: { title: string; body: string }[];
   children?: ImportNode[];
 }
 
@@ -30,6 +35,7 @@ export type ConflictStrategy = 'skip' | 'replace' | 'merge';
 
 export interface ImportSummary {
   created: number;
+  replaced: number;
   skipped: number;
 }
 
@@ -42,6 +48,7 @@ export interface ImportSummary {
 export interface ImportOperations {
   createNode: (input: NodeInput) => KnowledgeNode;
   addSection: (nodeId: ID, input: SectionInput) => void;
+  removeSection: (nodeId: ID, sectionId: ID) => void;
   resolveTagIds: (tagNames: string[]) => ID[];
   findChildByTitle: (parentId: ID | null, title: string) => KnowledgeNode | undefined;
 }

@@ -21,10 +21,16 @@ export function SectionEditor({ section, onSave, onDelete }: SectionEditorProps)
     onSave({ content, tagIds, markedImportant } as Partial<SectionInput>);
   }
 
+  // Reflects what's currently being typed for a 'markdown' section, not just the last-saved title.
+  const label =
+    section.type === 'markdown'
+      ? (content as { title: string }).title.trim() || 'Untitled section'
+      : SECTION_LABELS[section.type];
+
   return (
     <form className="entity-form section-editor" onSubmit={handleSubmit}>
       <div className="section-editor-header">
-        <h3>{SECTION_LABELS[section.type]}</h3>
+        <h3>{label}</h3>
         <Button type="button" variant="ghost" onClick={onDelete}>
           Remove section
         </Button>

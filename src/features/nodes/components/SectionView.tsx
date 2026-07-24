@@ -12,6 +12,9 @@ export function SectionView({ section }: { section: Section }) {
   const { isCollapsed: isSectionCollapsed, toggle } = useSectionCollapseContext();
   const isCollapsed = isSectionCollapsed(section.id);
   const tags = allTags.filter((tag) => section.tagIds.includes(tag.id));
+  // 'markdown' sections are repeatable and per-instance-titled — every other type shares one
+  // fixed label across all nodes, so only this one needs its title read from its own content.
+  const label = section.type === 'markdown' ? section.content.title.trim() || 'Untitled section' : SECTION_LABELS[section.type];
 
   return (
     <section className="section-view">
@@ -23,7 +26,7 @@ export function SectionView({ section }: { section: Section }) {
           aria-expanded={!isCollapsed}
         >
           <span aria-hidden="true">{isCollapsed ? '▸' : '▾'}</span>
-          <h3>{SECTION_LABELS[section.type]}</h3>
+          <h3>{label}</h3>
         </button>
         {tags.length > 0 && (
           <div className="entity-card-tags">

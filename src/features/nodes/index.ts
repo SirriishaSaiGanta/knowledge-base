@@ -12,7 +12,7 @@ export type {
 
 export { parseImportPayload } from './api/importValidator';
 export { parseMarkdownImport, parseNamesOnlyImport } from './api/importMarkdownParser';
-export { importTree } from './api/importService';
+export { importTree, importIntoNode } from './api/importService';
 export { flattenTree } from './hooks/flattenTree';
 export type { FlatNodeOption } from './hooks/flattenTree';
 

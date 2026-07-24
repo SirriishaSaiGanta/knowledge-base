@@ -16,6 +16,8 @@ export { Markdown } from './Markdown';
 export type { MarkdownProps } from './Markdown';
 export { CodeBlock } from './CodeBlock';
 export type { CodeBlockProps } from './CodeBlock';
+export { MermaidDiagram } from './MermaidDiagram';
+export type { MermaidDiagramProps } from './MermaidDiagram';
 export { RepeatableFieldList } from './RepeatableFieldList';
 export type { RepeatableFieldListProps } from './RepeatableFieldList';
 export { ErrorBoundary } from './ErrorBoundary';

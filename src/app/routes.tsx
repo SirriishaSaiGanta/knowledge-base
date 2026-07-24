@@ -19,9 +19,7 @@ export function AppRoutes() {
             path="/nodes/:id"
             element={
               <NodeDetailPage
-                renderExtraActions={(node) => (
-                  <ImportButton defaultParentId={node.id} lockDestination label="Import here" />
-                )}
+                renderExtraActions={(node) => <ImportButton targetNode={node} lockDestination label="Import here" />}
               />
             }
           />

@@ -1,31 +1,6 @@
-import type { SectionType } from '../types/Section';
-import type { ImportNode, ImportValidationError } from '../types/Import';
-import { SECTION_VALIDATORS } from './importValidator';
-
-const HEADING_TO_SECTION: Record<string, SectionType> = {
-  description: 'shortDescription',
-  'detailed explanation': 'detailedExplanation',
-  'why introduced': 'whyIntroduced',
-  'real-world problem': 'realWorldProblem',
-  'real world problem': 'realWorldProblem',
-  'real-world example': 'realWorldExample',
-  'real world example': 'realWorldExample',
-  'code example': 'codeExamples',
-  'code examples': 'codeExamples',
-  'important points': 'importantPoints',
-  'best practices': 'bestPractices',
-  'common mistakes': 'commonMistakes',
-  'interview points': 'interviewPoints',
-  'interview questions': 'interviewQuestions',
-  'scenario questions': 'scenarioQuestions',
-  'scenario-based questions': 'scenarioQuestions',
-  references: 'references',
-  'references / links': 'references',
-};
+import type { ImportNode } from '../types/Import';
 
 const CHILDREN_HEADING = 'children';
-const DIFFICULTY_TAG = /\s*\[(basic|intermediate|advanced)\]\s*$/i;
-const MARKDOWN_LINK = /^\[(.+)\]\((.+)\)$/;
 const HEADING_PATTERN = /^(#{1,6})\s+(.*)$/;
 
 interface HeadingBlock {
@@ -128,91 +103,17 @@ function outlineToImportNodes(nodes: OutlineNode[]): ImportNode[] {
   }));
 }
 
-function extractBulletPoints(body: string): string[] {
-  return body
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith('- ') || line.startsWith('* '))
-    .map((line) => line.slice(2).trim())
-    .filter(Boolean);
-}
-
-/** Every fenced block becomes one example; the text up to the next fence becomes its explanation. */
-function extractCodeExamples(body: string): { language: string; code: string; explanation: string }[] {
-  const fencePattern = /```(\w*)\n([\s\S]*?)```/g;
-  const matches = [...body.matchAll(fencePattern)];
-
-  return matches.map((match, index) => {
-    const fenceEnd = (match.index ?? 0) + match[0].length;
-    const nextStart = matches[index + 1]?.index ?? body.length;
-    const explanation = body
-      .slice(fenceEnd, nextStart)
-      .replace(/^#{1,6}.*$/gm, '')
-      .trim();
-    return { language: match[1] || 'text', code: match[2].replace(/\n$/, ''), explanation };
-  });
-}
-
-/** Converts one top-level section's markdown body into the "raw" shape SECTION_VALIDATORS already accepts. */
-function toRawSectionValue(type: SectionType, body: string): unknown {
-  switch (type) {
-    case 'realWorldExample': {
-      const items = splitByHeadings(body, 2);
-      return items.length > 0 ? items.map((item) => ({ title: item.heading, description: item.body })) : body;
-    }
-    case 'codeExamples':
-      return extractCodeExamples(body);
-    case 'importantPoints':
-    case 'interviewPoints':
-      return extractBulletPoints(body);
-    case 'bestPractices': {
-      const items = splitByHeadings(body, 2);
-      return items.length > 0
-        ? items.map((item) => ({ recommendation: item.heading, explanation: item.body }))
-        : extractBulletPoints(body);
-    }
-    case 'commonMistakes': {
-      const items = splitByHeadings(body, 2);
-      return items.length > 0
-        ? items.map((item) => ({ mistake: item.heading, whyWrong: item.body }))
-        : extractBulletPoints(body);
-    }
-    case 'interviewQuestions':
-      return splitByHeadings(body, 2).map((item) => {
-        const difficultyMatch = DIFFICULTY_TAG.exec(item.heading);
-        return {
-          question: item.heading.replace(DIFFICULTY_TAG, '').trim(),
-          answer: item.body,
-          difficulty: difficultyMatch?.[1]?.toLowerCase() ?? 'basic',
-        };
-      });
-    case 'scenarioQuestions':
-      return splitByHeadings(body, 2).map((item) => ({ question: item.heading, answer: item.body }));
-    case 'references':
-      return splitByHeadings(body, 2).map((item) => {
-        const linkMatch = MARKDOWN_LINK.exec(item.heading);
-        return linkMatch
-          ? { title: linkMatch[1], url: linkMatch[2], description: item.body }
-          : { title: item.heading, description: item.body };
-      });
-    default:
-      // shortDescription, detailedExplanation, whyIntroduced, realWorldProblem — all accept plain prose.
-      return body;
-  }
-}
-
 /**
- * Turns a pasted markdown document (using the documented heading
- * convention) into an ImportNode, ready for the same importTree() used by
- * JSON imports. Unlike JSON parsing, this never hard-fails — unrecognized
- * or missing headings are simply skipped, since markdown is prose, not a
- * strict schema.
+ * Turns a pasted markdown document into an ImportNode. Every top-level (`#`) heading becomes its
+ * own ordered, titled `markdown` section, storing its raw body untouched — headings, tables, code
+ * fences, nested `##`/`###` etc. all pass straight through to the renderer, no fixed vocabulary,
+ * no schema, no limit on how many. `# Children` is the one reserved heading: it still builds a
+ * nested outline of new sidebar sub-topics instead of becoming a section, exactly as before.
  */
 export function parseMarkdownImport(title: string, markdown: string): ImportNode {
   const topLevel = splitByHeadings(markdown, 1);
-  const sections: NonNullable<ImportNode['sections']> = {};
+  const dynamicSections: NonNullable<ImportNode['dynamicSections']> = [];
   let children: ImportNode[] | undefined;
-  const scratchErrors: ImportValidationError[] = [];
 
   for (const block of topLevel) {
     const normalized = block.heading.trim().toLowerCase();
@@ -223,16 +124,13 @@ export function parseMarkdownImport(title: string, markdown: string): ImportNode
       continue;
     }
 
-    const sectionType = HEADING_TO_SECTION[normalized];
-    if (!sectionType || !block.body.trim()) continue;
-
-    const raw = toRawSectionValue(sectionType, block.body);
-    sections[sectionType] = SECTION_VALIDATORS[sectionType](raw, sectionType, scratchErrors) as never;
+    if (!block.body.trim()) continue;
+    dynamicSections.push({ title: block.heading.trim(), body: block.body });
   }
 
   return {
     title: title.trim(),
-    sections: Object.keys(sections).length > 0 ? sections : undefined,
+    dynamicSections: dynamicSections.length > 0 ? dynamicSections : undefined,
     children,
   };
 }

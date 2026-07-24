@@ -7,6 +7,7 @@ import type {
   CommonMistakesContent,
   Difficulty,
   InterviewQuestionsContent,
+  MarkdownSectionContent,
   RealWorldExampleContent,
   RealWorldProblemContent,
   ReferencesContent,
@@ -83,6 +84,22 @@ function unwrapListValue(value: unknown, key: string, path: string, errors: Impo
 }
 
 /* ---------- per-section-type content validators ---------- */
+
+/**
+ * JSON import isn't part of the dynamic-sections redesign (Markdown import is the only path that
+ * produces `markdown` sections in practice), but SECTION_VALIDATORS must still cover every
+ * SectionType. Accepts either a bare string (used as the body, untitled) or `{title, body}`.
+ */
+function validateMarkdownSection(value: unknown, path: string, errors: ImportValidationError[]): MarkdownSectionContent {
+  if (typeof value === 'string') {
+    return { title: '', body: value };
+  }
+  const obj = asRecord(value, path, errors);
+  return {
+    title: optionalString(obj?.title, `${path}.title`, errors),
+    body: optionalString(obj?.body, `${path}.body`, errors),
+  };
+}
 
 function validateWhyIntroduced(value: unknown, path: string, errors: ImportValidationError[]): WhyIntroducedContent {
   if (typeof value === 'string') {
@@ -238,11 +255,10 @@ function validateReferences(value: unknown, path: string, errors: ImportValidati
 export type ContentValidator = (value: unknown, path: string, errors: ImportValidationError[]) => unknown;
 
 /**
- * Mirrors SECTION_REGISTRY — one validator per section type, keeping each
- * fully typed internally. Exported so other import sources (e.g. the
- * markdown parser) can turn their own "raw" per-section values into the
- * same typed content shapes, instead of duplicating id-generation and
- * default-filling logic.
+ * Mirrors SECTION_REGISTRY — one validator per section type, keeping each fully typed internally.
+ * Used by the JSON import path (parseImportPayload/validateNode below). The Markdown import path
+ * has its own, much simpler pass-through logic for the repeatable `markdown` section type — see
+ * importMarkdownParser.ts — and doesn't go through this map at all.
  */
 export const SECTION_VALIDATORS: Record<SectionType, ContentValidator> = {
   shortDescription: optionalString,
@@ -258,6 +274,7 @@ export const SECTION_VALIDATORS: Record<SectionType, ContentValidator> = {
   interviewQuestions: validateInterviewQuestions,
   scenarioQuestions: validateScenarioQuestions,
   references: validateReferences,
+  markdown: validateMarkdownSection,
 };
 
 /* ---------- node structure ---------- */

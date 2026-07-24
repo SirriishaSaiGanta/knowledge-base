@@ -13,7 +13,8 @@ export type SectionType =
   | 'interviewPoints'
   | 'interviewQuestions'
   | 'scenarioQuestions'
-  | 'references';
+  | 'references'
+  | 'markdown';
 
 export type Difficulty = 'basic' | 'intermediate' | 'advanced';
 
@@ -117,6 +118,17 @@ export interface ReferencesContent {
   items: ReferenceItem[];
 }
 
+/**
+ * A freeform, per-instance-titled section — the dynamic counterpart to the typed sections above.
+ * Unlike every other section type, a node can have any number of these (one per `#` heading in a
+ * Markdown import); `title` comes from that heading's exact text, `body` is its raw Markdown body,
+ * stored and rendered verbatim.
+ */
+export interface MarkdownSectionContent {
+  title: string;
+  body: string;
+}
+
 /** Maps each section type to the shape its `content` field holds. */
 export interface SectionContentMap {
   shortDescription: string;
@@ -132,6 +144,7 @@ export interface SectionContentMap {
   interviewQuestions: InterviewQuestionsContent;
   scenarioQuestions: ScenarioQuestionsContent;
   references: ReferencesContent;
+  markdown: MarkdownSectionContent;
 }
 
 interface SectionBase<T extends SectionType> {

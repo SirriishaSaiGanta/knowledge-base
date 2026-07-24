@@ -7,11 +7,13 @@ import {
   parseMarkdownImport,
   parseNamesOnlyImport,
   importTree,
+  importIntoNode,
   flattenTree,
   type ImportNode,
   type ImportValidationError,
   type ImportSummary,
   type ConflictStrategy,
+  type KnowledgeNode,
 } from '@features/nodes';
 import { useTags, randomTagColor } from '@features/tags';
 import { ImportPreviewTree } from './ImportPreviewTree';
@@ -22,36 +24,33 @@ export interface ImportDialogProps {
   defaultParentId?: ID | null;
   /** When true, the destination picker and conflict-strategy option are hidden — imports always target defaultParentId. */
   lockDestination?: boolean;
+  /** When set, pasted content is added/replaced directly on this existing node instead of creating a new one
+   *  — used for "Import here" on a topic's own page. Hides the Title field, destination picker, and conflict
+   *  strategy, since none of those apply when the target is already known. */
+  targetNode?: KnowledgeNode;
   onClose: () => void;
 }
 
 type ImportFormat = 'markdown' | 'json';
 type ContentMode = 'full' | 'namesOnly';
 
-const TOP_LEVEL_HEADINGS = [
-  'Description',
-  'Detailed Explanation',
-  'Why Introduced',
-  'Real-world Problem',
-  'Real-world Example',
-  'Code Example',
-  'Important Points',
-  'Best Practices',
-  'Common Mistakes',
-  'Interview Points',
-  'Interview Questions',
-  'Scenario Questions',
-  'References',
-];
-
-/** Existing children of the chosen destination are pre-listed as `##` names, so the AI (or you) can see
- *  what's already there and add new ones without duplicating — re-importing over an existing name is a
- *  no-op by default (skip strategy), not a duplicate. */
+/** Existing children of the chosen destination are pre-listed under "# Children", so the AI (or you)
+ *  can see what's already there and add new ones without duplicating — re-importing over an existing
+ *  name is a no-op by default (skip strategy), not a duplicate. The rest is just an example shape —
+ *  there's no fixed heading vocabulary; any "#" heading becomes its own section, in order. */
 function buildMarkdownTemplate(existingChildNames: string[]): string {
-  const lines: string[] = [];
-  for (const heading of TOP_LEVEL_HEADINGS) {
-    lines.push(`# ${heading}`, '');
-  }
+  const lines: string[] = [
+    '# What is this topic?',
+    '',
+    'A short overview — this becomes its own section, titled exactly as written above.',
+    '',
+    '# Add as many headings as you want',
+    '',
+    'Every "#" heading becomes its own section, in the order you write them here. Nested',
+    '"##"/"###" headings, tables, code blocks, and everything else inside a section stay exactly',
+    'as written — nothing gets restructured.',
+    '',
+  ];
   lines.push('# Children');
   for (const name of existingChildNames) {
     lines.push(`## ${name}`);
@@ -71,9 +70,16 @@ function buildNamesOnlyTemplate(existingChildNames: string[]): string {
   return lines.join('\n');
 }
 
-export function ImportDialog({ open, defaultParentId = null, lockDestination = false, onClose }: ImportDialogProps) {
-  const { nodes, tree, createNode, addSection } = useNodes();
+export function ImportDialog({
+  open,
+  defaultParentId = null,
+  lockDestination = false,
+  targetNode,
+  onClose,
+}: ImportDialogProps) {
+  const { nodes, tree, createNode, addSection, removeSection } = useNodes();
   const tags = useTags();
+  const isSelfImport = Boolean(targetNode);
 
   const [format, setFormat] = useState<ImportFormat>('markdown');
   const [contentMode, setContentMode] = useState<ContentMode>('full');
@@ -83,6 +89,7 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
   const [errors, setErrors] = useState<ImportValidationError[]>([]);
   const [parentId, setParentId] = useState<ID | null>(defaultParentId);
   const [strategy, setStrategy] = useState<ConflictStrategy>('skip');
+  const [selfImportStrategy, setSelfImportStrategy] = useState<'merge' | 'replace'>('merge');
   const [summary, setSummary] = useState<ImportSummary | null>(null);
 
   const destinations = useMemo(() => flattenTree(tree), [tree]);
@@ -93,6 +100,7 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
     setParsed(null);
     setErrors([]);
     setParentId(defaultParentId);
+    setSelfImportStrategy('merge');
     setSummary(null);
   }
 
@@ -111,7 +119,8 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
   }
 
   function handleInsertTemplate() {
-    const existingChildNames = nodes.filter((node) => node.parentId === parentId).map((node) => node.title);
+    const scopeParentId = isSelfImport ? targetNode!.id : parentId;
+    const existingChildNames = nodes.filter((node) => node.parentId === scopeParentId).map((node) => node.title);
     setRaw(
       contentMode === 'full'
         ? buildMarkdownTemplate(existingChildNames)
@@ -125,12 +134,17 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
       setParsed(result.node);
       setErrors(result.errors);
     } else {
-      if (!title.trim()) {
+      if (!isSelfImport && !title.trim()) {
         setParsed(null);
         setErrors([{ path: 'title', message: 'Title is required for markdown imports' }]);
         return;
       }
-      setParsed(contentMode === 'full' ? parseMarkdownImport(title, raw) : parseNamesOnlyImport(title, raw));
+      const effectiveTitle = isSelfImport ? targetNode!.title : title;
+      setParsed(
+        contentMode === 'full'
+          ? parseMarkdownImport(effectiveTitle, raw)
+          : parseNamesOnlyImport(effectiveTitle, raw),
+      );
       setErrors([]);
     }
     setSummary(null);
@@ -151,21 +165,58 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
 
   function handleImport() {
     if (!parsed) return;
+
+    if (isSelfImport && targetNode) {
+      const result = importIntoNode(
+        parsed,
+        targetNode.id,
+        targetNode.sections,
+        { createNode, addSection, removeSection, resolveTagIds, findChildByTitle },
+        selfImportStrategy,
+      );
+      setSummary(result);
+      return;
+    }
+
     const order = nodes.filter((node) => node.parentId === parentId).length;
     const result = importTree(
       parsed,
       parentId,
       order,
-      { createNode, addSection, resolveTagIds, findChildByTitle },
+      { createNode, addSection, removeSection, resolveTagIds, findChildByTitle },
       strategy,
     );
     setSummary(result);
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Import topics">
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title={isSelfImport ? `Add content to "${targetNode!.title}"` : 'Import topics'}
+    >
       <div className="import-dialog">
-        {!lockDestination && (
+        {isSelfImport && (
+          <>
+            <p className="import-target-note">
+              No new topic is created — sections you paste below are added directly to this topic. Anything under
+              a <code>Children</code> heading is still added as a new sub-topic.
+            </p>
+
+            <label>
+              How should this be added?
+              <select
+                value={selfImportStrategy}
+                onChange={(event) => setSelfImportStrategy(event.target.value as 'merge' | 'replace')}
+              >
+                <option value="merge">Add as new sections (keep existing content)</option>
+                <option value="replace">Replace this topic&apos;s entire content</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {!lockDestination && !isSelfImport && (
           <>
             <fieldset className="import-destination">
               <legend>Import into</legend>
@@ -200,13 +251,9 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
             <label>
               If a topic already exists there
               <select value={strategy} onChange={(event) => setStrategy(event.target.value as ConflictStrategy)}>
-                <option value="skip">Skip it (keep existing)</option>
-                <option value="replace" disabled>
-                  Replace it (coming soon)
-                </option>
-                <option value="merge" disabled>
-                  Merge into it (coming soon)
-                </option>
+                <option value="skip">Skip it (keep existing, add nothing)</option>
+                <option value="merge">Merge into it (add new sections, keep existing)</option>
+                <option value="replace">Replace it (overwrite all sections)</option>
               </select>
             </label>
           </>
@@ -242,7 +289,9 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
                 <option value="namesOnly">Just topic names (outline only, no content)</option>
               </select>
             </label>
-            <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Topic title" />
+            {!isSelfImport && (
+              <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Topic title" />
+            )}
             <div className="import-source-toolbar">
               <Button type="button" variant="ghost" onClick={handleInsertTemplate}>
                 Insert {contentMode === 'full' ? 'heading' : 'example'} template
@@ -254,7 +303,7 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
               onChange={(event) => setRaw(event.target.value)}
               placeholder={
                 contentMode === 'full'
-                  ? 'Paste markdown here, using the documented headings (# Description, # Detailed Explanation, ...)'
+                  ? 'Paste markdown here — every "# Heading" becomes its own section, in order. Add "# Children" at the end to create sub-topics.'
                   : 'Paste a nested outline of topic names here — just headings, e.g. "# Topic" / "## Subtopic"'
               }
               className="import-json-input"
@@ -303,7 +352,8 @@ export function ImportDialog({ open, defaultParentId = null, lockDestination = f
         {summary && (
           <p className="import-summary">
             Created {summary.created} topic{summary.created === 1 ? '' : 's'}
-            {summary.skipped > 0 ? `, skipped ${summary.skipped} that already existed.` : '.'}
+            {summary.replaced > 0 ? `, replaced ${summary.replaced}` : ''}
+            {summary.skipped > 0 ? `, skipped ${summary.skipped} that already existed` : ''}.
           </p>
         )}
       </div>

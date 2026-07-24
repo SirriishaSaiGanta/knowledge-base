@@ -124,7 +124,11 @@ a {
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100svh;
+  /* Fixed (not min-) height + hidden overflow so the sidebar and main content each
+     scroll independently within .workspace, instead of the whole page — and the
+     sidebar — scrolling together whenever main content runs long. */
+  height: 100svh;
+  overflow: hidden;
 }
 
 .app-header {
@@ -195,24 +199,6 @@ a {
   max-width: 40vw;
 }
 
-.app-header-logout {
-  background: none;
-  border: none;
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  padding: 4px 10px;
-  white-space: nowrap;
-  border-radius: 6px;
-  transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-.app-header-logout:hover {
-  color: var(--text-h);
-  background: var(--bg-raised);
-}
-
 .theme-toggle {
   width: 30px;
   height: 30px;
@@ -232,16 +218,58 @@ a {
   border-color: var(--accent);
 }
 
+/* Sidebar toggle — collapses/expands the sidebar on every screen size. */
+.sidebar-toggle {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-h);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.sidebar-toggle:hover {
+  border-color: var(--accent);
+}
+
 @media (max-width: 720px) {
+  .app-header {
+    padding: 8px 14px;
+    gap: 8px;
+  }
+
   .app-header-title {
     display: none;
   }
 
+  .app-header-right {
+    gap: 6px;
+  }
+
+  .app-header-search {
+    padding: 5px 9px;
+  }
+
   .app-header-search input {
-    width: 120px;
+    width: 90px;
   }
 
   .mode-tab-label {
+    display: none;
+  }
+
+  .mode-tab {
+    padding: 5px 8px;
+  }
+
+  .app-header-right .import-button-label {
     display: none;
   }
 }
@@ -255,10 +283,81 @@ a {
 .workspace-sidebar {
   width: 272px;
   flex-shrink: 0;
-  padding: 20px 14px;
   border-right: 1px solid var(--border);
-  overflow-y: auto;
   font-size: 13px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-sidebar-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 14px;
+}
+
+/* In-panel close control — the sidebar can be collapsed on any screen size now, so it always
+   needs its own close affordance rather than relying on the (sometimes off-screen) header toggle. */
+.workspace-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.workspace-sidebar-header-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text);
+}
+
+.sidebar-close {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-h);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.sidebar-close:hover {
+  border-color: var(--accent);
+}
+
+.sidebar-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin: 0 14px 16px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-raised);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.sidebar-logout:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(217, 45, 32, 0.06);
 }
 
 .workspace-main {
@@ -266,6 +365,132 @@ a {
   min-width: 0;
   padding: 32px 40px;
   overflow-y: auto;
+}
+
+/* Desktop/tablet: sidebar collapses to width 0 by default and pushes/reveals rather than
+   overlaying — there's room for content to just reflow next to it. Collapsed by default
+   (no `.open` class) matches the mobile drawer's default-closed state. */
+@media (min-width: 861px) {
+  .workspace-sidebar {
+    width: 0;
+    border-right-color: transparent;
+    overflow: hidden;
+    transition: width 0.2s ease, border-color 0.2s ease;
+  }
+
+  .workspace-sidebar.open {
+    width: 272px;
+    border-right-color: var(--border);
+  }
+
+  /* Fixed inner width so content reveals/clips cleanly as the panel animates, instead of
+     squashing and rewrapping while narrower than its final size. */
+  .workspace-sidebar-content,
+  .sidebar-logout {
+    min-width: 272px;
+  }
+}
+
+@media (max-width: 860px) {
+  /* Sidebar becomes an off-canvas drawer that overlaps content instead of pushing it down. */
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 6, 14, 0.5);
+    z-index: 45;
+    animation: sidebar-backdrop-in 0.15s ease;
+  }
+
+  .workspace-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(82vw, 300px);
+    max-height: none;
+    z-index: 50;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    box-shadow: var(--shadow-md);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .workspace-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .workspace-main {
+    padding: 20px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 100%;
+  }
+
+  .page-header-actions {
+    flex-wrap: wrap;
+  }
+
+  .node-viewer,
+  .node-editor {
+    max-width: 100%;
+  }
+
+  .example-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .repeatable-field-list-row {
+    flex-direction: column;
+  }
+}
+
+@keyframes sidebar-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .workspace-main {
+    padding: 14px;
+  }
+
+  .workspace-sidebar-content {
+    padding: 14px 10px;
+  }
+
+  .sidebar-logout {
+    margin: 0 10px 12px;
+  }
+
+  .section-view,
+  .section-editor {
+    padding: 14px 16px;
+  }
+
+  .accordion-trigger,
+  .reference-item-header,
+  .import-preview-row {
+    flex-wrap: wrap;
+  }
+
+  .modal {
+    padding: 18px;
+  }
+
+  .password-input {
+    flex-direction: column;
+  }
+
+  .node-title-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .page-header {
@@ -381,6 +606,9 @@ select:focus {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  /* Must outrank the mobile sidebar drawer (z-index 50) and its backdrop (45), or a modal opened
+     while the drawer is open — e.g. clicking Import inside the sidebar — renders underneath it. */
+  z-index: 60;
 }
 
 .modal {
@@ -697,16 +925,30 @@ select:focus {
 .node-editor {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
   max-width: 720px;
+}
+
+.section-view {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.section-view:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
 }
 
 .section-view h3,
 .section-editor-header h3 {
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   color: var(--text);
   margin: 0;
 }
@@ -716,13 +958,12 @@ select:focus {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
 }
 
 .section-view-toggle {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 10px;
   background: none;
   border: none;
   cursor: pointer;
@@ -730,12 +971,60 @@ select:focus {
   color: inherit;
 }
 
+.section-view-toggle span[aria-hidden] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 10px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.section-view-toggle:hover span[aria-hidden] {
+  background: var(--accent);
+  color: white;
+}
+
+.section-view-body {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  animation: section-body-in 0.15s ease;
+}
+
+@keyframes section-body-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .hidden-sections {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+}
+
+.hidden-sections .btn {
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+.hidden-sections .btn:hover {
+  border-color: var(--accent);
+  border-style: solid;
 }
 
 .section-error {
@@ -772,14 +1061,19 @@ select:focus {
 
 .section-editor {
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 18px 20px;
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 
 .section-editor-important {
@@ -797,6 +1091,16 @@ select:focus {
 
 .add-section select {
   width: auto;
+}
+
+.add-section {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
 }
 
 /* Auth */
@@ -853,6 +1157,24 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.import-target-note {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  background: var(--accent-bg);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--text-h);
+}
+
+.import-target-note code {
+  font-family: var(--mono);
+  font-size: 0.95em;
+  background: var(--code-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 .import-source {
@@ -990,9 +1312,91 @@ select:focus {
 
 .markdown-body blockquote {
   margin: 0 0 12px;
-  padding-left: 12px;
-  border-left: 3px solid var(--border);
+  padding: 8px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.markdown-body blockquote > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body hr {
+  margin: 20px 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.markdown-body li.task-list-item {
+  list-style: none;
+  margin-left: -22px;
+}
+
+.markdown-body input[type='checkbox'] {
+  margin-right: 6px;
+}
+
+.markdown-image {
+  max-width: 100%;
+  border-radius: 8px;
+  cursor: zoom-in;
+  border: 1px solid var(--border);
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(8, 6, 14, 0.8);
+  cursor: zoom-out;
+  animation: sidebar-backdrop-in 0.15s ease;
+}
+
+.image-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  cursor: default;
+}
+
+.mermaid-diagram {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-raised);
+}
+
+.mermaid-diagram svg {
+  max-width: 100%;
+}
+
+.mermaid-loading {
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12.5px;
   color: var(--text);
+}
+
+.mermaid-error {
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--danger);
+  background: rgba(217, 45, 32, 0.06);
+  border-radius: 8px;
+  font-size: 13px;
 }
 
 .markdown-inline-code {
