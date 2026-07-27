@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import type { ID } from '@shared/types/common';
 import { generateId } from '@shared/utils/id';
 import { nodesRepository } from '../api/nodesRepository';
@@ -20,20 +20,19 @@ export interface NodesResource {
 }
 
 export function useNodesResource(): NodesResource {
-  const [nodes, setNodes] = useState<KnowledgeNode[]>(() => nodesRepository.getAll());
+  /* nodesRepository notifies subscribers on every mutation — whether made locally or pushed in
+   * via Realtime from another device — so reading through useSyncExternalStore keeps `nodes`
+   * live without any manual setState bookkeeping. */
+  const nodes = useSyncExternalStore(nodesRepository.subscribe, nodesRepository.getAll);
 
   const tree = useMemo(() => buildTree(nodes), [nodes]);
 
   const patchNode = useCallback((id: ID, patch: Partial<Omit<KnowledgeNode, 'id' | 'createdAt' | 'updatedAt'>>) => {
-    const updated = nodesRepository.update(id, patch);
-    if (!updated) return;
-    setNodes((current) => current.map((node) => (node.id === id ? updated : node)));
+    nodesRepository.update(id, patch);
   }, []);
 
   const createNode = useCallback((input: NodeInput) => {
-    const node = nodesRepository.create({ ...input, sections: [] });
-    setNodes((current) => [...current, node]);
-    return node;
+    return nodesRepository.create({ ...input, sections: [] });
   }, []);
 
   const renameNode = useCallback(
@@ -56,20 +55,11 @@ export function useNodesResource(): NodesResource {
     const clampedIndex = Math.max(0, Math.min(newIndex, siblings.length));
     siblings.splice(clampedIndex, 0, moving);
 
-    const updates = siblings
-      .map((sibling, index) => nodesRepository.update(sibling.id, { parentId: newParentId, order: index }))
-      .filter((node): node is KnowledgeNode => node !== undefined);
-
-    setNodes((currentState) => {
-      const updateMap = new Map(updates.map((node) => [node.id, node]));
-      return currentState.map((node) => updateMap.get(node.id) ?? node);
-    });
+    siblings.forEach((sibling, index) => nodesRepository.update(sibling.id, { parentId: newParentId, order: index }));
   }, []);
 
   const removeNode = useCallback((id: ID) => {
-    const idsToRemove = new Set([id, ...nodesRepository.getDescendantIds(id)]);
     nodesRepository.removeSubtree(id);
-    setNodes((current) => current.filter((node) => !idsToRemove.has(node.id)));
   }, []);
 
   const addSection = useCallback(

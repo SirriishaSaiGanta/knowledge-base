@@ -1,9 +1,32 @@
-import { createRepository } from '@data/createRepository';
-import { localStorageAdapter } from '@data/storage/localStorageAdapter';
+import { createSupabaseRepository } from '@data/supabaseRepository';
 import type { ID } from '@shared/types/common';
 import type { KnowledgeNode } from '../types/Node';
 
-const base = createRepository<KnowledgeNode>('kb:nodes', localStorageAdapter);
+function toRow(node: KnowledgeNode): Record<string, unknown> {
+  return {
+    id: node.id,
+    parent_id: node.parentId,
+    title: node.title,
+    order: node.order,
+    sections: node.sections,
+    created_at: node.createdAt,
+    updated_at: node.updatedAt,
+  };
+}
+
+function fromRow(row: Record<string, unknown>): KnowledgeNode {
+  return {
+    id: row.id as string,
+    parentId: (row.parent_id as string | null) ?? null,
+    title: row.title as string,
+    order: row.order as number,
+    sections: (row.sections as KnowledgeNode['sections']) ?? [],
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+const base = createSupabaseRepository<KnowledgeNode>('nodes', toRow, fromRow);
 
 function collectDescendantIds(id: ID, all: KnowledgeNode[]): ID[] {
   const directChildren = all.filter((node) => node.parentId === id);

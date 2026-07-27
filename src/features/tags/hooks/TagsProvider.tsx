@@ -1,9 +1,9 @@
 import type { PropsWithChildren } from 'react';
-import { useCrudResource } from '@shared/hooks/useCrudResource';
+import { useSupabaseCrudResource } from '@shared/hooks/useSupabaseCrudResource';
 import { tagsRepository } from '../api/tagsRepository';
 import { TagsContext } from './TagsContext';
 
 export function TagsProvider({ children }: PropsWithChildren) {
-  const value = useCrudResource(tagsRepository);
+  const value = useSupabaseCrudResource(tagsRepository);
   return <TagsContext.Provider value={value}>{children}</TagsContext.Provider>;
 }

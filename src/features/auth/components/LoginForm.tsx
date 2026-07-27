@@ -30,11 +30,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   return (
     <form className="entity-form login-form" onSubmit={handleSubmit}>
       <label>
-        Username
+        Email
         <Input
+          type="email"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
-          autoComplete="username"
+          autoComplete="email"
           required
         />
       </label>
