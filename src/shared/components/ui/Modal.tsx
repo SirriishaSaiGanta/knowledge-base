@@ -1,4 +1,5 @@
 import { useEffect, type PropsWithChildren } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface ModalProps extends PropsWithChildren {
   open: boolean;
@@ -20,7 +21,11 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   if (!open) return null;
 
-  return (
+  /* Portalled to <body> because callers can mount this from inside the sidebar, which gets a
+     CSS `transform` for its slide-in animation on mobile — a transformed ancestor creates a new
+     containing block for `position: fixed`, so without the portal the overlay gets trapped inside
+     the sidebar's box instead of covering the viewport. */
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal"
@@ -37,6 +42,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

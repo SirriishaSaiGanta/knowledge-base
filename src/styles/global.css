@@ -21,7 +21,7 @@
   --shadow-sm: 0 1px 2px rgba(16, 12, 24, 0.04);
   --shadow-md: 0 4px 16px rgba(16, 12, 24, 0.08);
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   color-scheme: light;
@@ -32,7 +32,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   --text: #9ca3af;
   --text-h: #f5f5f7;
   --bg: #16171d;
@@ -351,7 +351,10 @@ a {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .sidebar-logout:hover {
@@ -375,7 +378,9 @@ a {
     width: 0;
     border-right-color: transparent;
     overflow: hidden;
-    transition: width 0.2s ease, border-color 0.2s ease;
+    transition:
+      width 0.2s ease,
+      border-color 0.2s ease;
   }
 
   .workspace-sidebar.open {
@@ -456,6 +461,15 @@ a {
 }
 
 @media (max-width: 480px) {
+  /* The search box, import button, mode switcher, and theme toggle no longer fit on one
+     row at this width — without this, the last item to overflow (theme toggle) wraps onto
+     its own orphaned row instead of forcing a clean two-row split. Giving the search box
+     (the widest, first item) a full-width basis pushes everything after it onto row two
+     together, where it fits. */
+  .app-header-search {
+    flex-basis: 100%;
+  }
+
   .workspace-main {
     padding: 14px;
   }
@@ -518,7 +532,11 @@ a {
   border-radius: 6px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .btn-primary {
@@ -649,7 +667,9 @@ select:focus {
   line-height: 1;
   color: var(--text);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .modal-close:hover {
@@ -763,7 +783,9 @@ select:focus {
   font-size: 11.5px;
   color: var(--text);
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .node-tree-toolbar-btn:hover {
@@ -799,7 +821,7 @@ select:focus {
 
 .node-tree-row.drop-before::before,
 .node-tree-row.drop-after::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   right: 0;
@@ -838,7 +860,9 @@ select:focus {
   border-radius: 6px;
   color: var(--text);
   text-decoration: none;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .node-tree-row a.active,
@@ -906,7 +930,10 @@ select:focus {
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .mode-tab:hover {
@@ -935,7 +962,9 @@ select:focus {
   padding: 16px 20px;
   background: var(--bg-raised);
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .section-view:hover {
@@ -982,7 +1011,9 @@ select:focus {
   background: var(--accent-bg);
   color: var(--accent);
   font-size: 10px;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .section-view-toggle:hover span[aria-hidden] {
@@ -1334,7 +1365,7 @@ select:focus {
   margin-left: -22px;
 }
 
-.markdown-body input[type='checkbox'] {
+.markdown-body input[type="checkbox"] {
   margin-right: 6px;
 }
 
@@ -1612,7 +1643,9 @@ select:focus {
   font-size: 11px;
   color: var(--text);
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .code-block-copy:hover {
