@@ -1,3 +1,4 @@
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Identifiable, Timestamped } from '@shared/types/common';
 import { generateId } from '@shared/utils/id';
 import { nowIso } from '@shared/utils/date';
@@ -23,6 +24,13 @@ export interface SupabaseRepository<T extends Identifiable> extends Repository<T
    *  used only for the one-time local-data migration, where existing cross-references (a node's
    *  parentId, a section's tagIds) must keep pointing at the same ids. */
   importRaw(entities: T[]): Promise<void>;
+  /** Drops the cached snapshot and realtime subscription and forgets that init() ever ran, so the
+   *  next init() re-fetches from scratch. Row Level Security already stops one signed-in user from
+   *  reading another's rows over the network — this is about the *client-side cache*, which is a
+   *  plain module-level singleton and therefore outlives any single user's session. Without
+   *  resetting it, logging out and back in as someone else in the same tab would keep showing the
+   *  previous account's topics until a hard refresh. Call on every sign-out. */
+  reset(): void;
 }
 
 /**
@@ -43,6 +51,7 @@ export function createSupabaseRepository<T extends Identifiable & Timestamped>(
 ): SupabaseRepository<T> {
   let cache: T[] = [];
   let initPromise: Promise<void> | null = null;
+  let channel: RealtimeChannel | null = null;
   const listeners = new Set<() => void>();
 
   function notify() {
@@ -66,8 +75,8 @@ export function createSupabaseRepository<T extends Identifiable & Timestamped>(
         cache = (data ?? []).map(fromRow);
         notify();
 
-        supabase
-          .channel(`${table}-changes`)
+        channel = supabase
+          .channel(`${table}-changes-${crypto.randomUUID()}`)
           .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
             if (payload.eventType === 'DELETE') {
               removeLocal((payload.old as Record<string, unknown>).id as string);
@@ -142,6 +151,16 @@ export function createSupabaseRepository<T extends Identifiable & Timestamped>(
       notify();
       const { error } = await supabase.from(table).insert(entities.map(toRow));
       if (error) console.error(`Failed to import into ${table}:`, error.message);
+    },
+
+    reset() {
+      if (channel) {
+        void supabase.removeChannel(channel);
+        channel = null;
+      }
+      cache = [];
+      initPromise = null;
+      notify();
     },
   };
 }

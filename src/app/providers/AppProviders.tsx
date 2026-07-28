@@ -31,8 +31,13 @@ export function AppProviders({ children }: PropsWithChildren) {
       .then(() => {
         if (active) setIsDataReady(true);
       });
+    /* Runs on sign-out (this whole subtree unmounts when ProtectedRoute redirects to /login) —
+     * without it, the next person to log in on this tab would see the previous account's cached
+     * topics until a hard refresh. See SupabaseRepository.reset() for the full reasoning. */
     return () => {
       active = false;
+      nodesRepository.reset();
+      tagsRepository.reset();
     };
   }, []);
 
