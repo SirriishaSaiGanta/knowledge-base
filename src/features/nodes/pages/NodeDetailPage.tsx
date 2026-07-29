@@ -5,6 +5,7 @@ import { Button, ErrorBoundary, Input } from '@shared/components/ui';
 import { useNodes } from '../hooks/useNodes';
 import { NodeViewer } from '../components/NodeViewer';
 import { NodeEditor } from '../components/NodeEditor';
+import { PrintableTopic } from '../components/PrintableTopic';
 import type { KnowledgeNode } from '../types/Node';
 
 export interface NodeDetailPageProps {
@@ -24,6 +25,7 @@ export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const node = nodes.find((item) => item.id === id);
 
@@ -76,6 +78,9 @@ export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
               <Button variant="secondary" onClick={() => setIsEditing((value) => !value)}>
                 {isEditing ? 'Done editing' : 'Edit content'}
               </Button>
+              <Button variant="secondary" onClick={() => setIsExporting(true)} disabled={isExporting}>
+                Export PDF
+              </Button>
               {renderExtraActions?.(node)}
               <Button variant="danger" onClick={() => setIsConfirmingDelete(true)}>
                 Delete
@@ -100,6 +105,8 @@ export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
       >
         {isEditing ? <NodeEditor key={node.id} node={node} /> : <NodeViewer key={node.id} node={node} />}
       </ErrorBoundary>
+
+      {isExporting && <PrintableTopic rootId={node.id} onDone={() => setIsExporting(false)} />}
 
       <ConfirmDialog
         open={isConfirmingDelete}

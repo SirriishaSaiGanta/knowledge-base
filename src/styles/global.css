@@ -1935,3 +1935,62 @@ select:focus {
   display: inline-block;
   text-decoration: none;
 }
+
+/* Export PDF (Topic + all sub-topics via the browser's print dialog) */
+
+/* Hidden on screen unconditionally — only ever shown in @media print, and only while an export is
+   in progress (PrintableTopic portals it to <body> and unmounts on afterprint). */
+.printable-topic {
+  display: none;
+}
+
+@media print {
+  /* Print only the exported content, not the app chrome around it — .printable-topic is a portal
+     sibling of .app-shell precisely so hiding one doesn't hide the other. */
+  .app-shell {
+    display: none;
+  }
+
+  .printable-topic {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  .printable-topic h1,
+  .printable-topic h2,
+  .printable-topic h3,
+  .printable-topic h4,
+  .printable-topic h5 {
+    color: #000;
+    break-after: avoid;
+  }
+
+  .printable-node {
+    break-before: page;
+  }
+
+  .printable-node:first-child {
+    break-before: avoid;
+  }
+
+  .printable-section {
+    margin: 12px 0 20px;
+    break-inside: avoid;
+  }
+
+  .printable-section h5 {
+    font-size: 11pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 6px;
+  }
+
+  .printable-topic pre,
+  .printable-topic .code-block {
+    break-inside: avoid;
+  }
+}

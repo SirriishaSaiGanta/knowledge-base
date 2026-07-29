@@ -54,6 +54,34 @@ export function createSupabaseRepository<T extends Identifiable & Timestamped>(
   let channel: RealtimeChannel | null = null;
   const listeners = new Set<() => void>();
 
+  /* Every write goes through this chain instead of firing independently. Without it, creating a
+   * parent then immediately creating a child under it (exactly what importing a tree does — one
+   * createNode() call per node, in a synchronous loop) fires both INSERTs over the network back to
+   * back with no guarantee the parent's commits first; the child's row.parent_id FK can then be
+   * rejected because, from the database's point of view, the parent doesn't exist yet. That failure
+   * was only ever console.error'd, so the row silently vanished — it looked fine for the rest of
+   * that session because the local cache still had it, then disappeared on the next fresh load once
+   * the cache was rebuilt from what's actually in Postgres. Chaining every write onto the previous
+   * one's completion, instead of firing it immediately, guarantees they land in call order. */
+  let writeQueue: Promise<unknown> = Promise.resolve();
+
+  /** Runs `run` only after every previously-enqueued write has settled, and never leaves the queue
+   *  in a rejected state — an errored write is logged, not thrown, so it can't jam every write
+   *  after it. Returns a promise that resolves once this specific write is done, for callers (like
+   *  the migration) that need to know it actually landed. */
+  function enqueueWrite(
+    run: () => PromiseLike<{ error: { message: string } | null }>,
+    failureContext: string,
+  ): Promise<void> {
+    const attempt = writeQueue.then(run, () => ({ error: null })).catch((err: unknown) => ({
+      error: { message: err instanceof Error ? err.message : String(err) },
+    }));
+    writeQueue = attempt;
+    return attempt.then(({ error }) => {
+      if (error) console.error(`Failed to ${failureContext}:`, error.message);
+    });
+  }
+
   function notify() {
     listeners.forEach((listener) => listener());
   }
@@ -108,12 +136,7 @@ export function createSupabaseRepository<T extends Identifiable & Timestamped>(
       const entity = { ...input, id: generateId(), createdAt: timestamp, updatedAt: timestamp } as T;
       upsertLocal(entity);
       notify();
-      void supabase
-        .from(table)
-        .insert(toRow(entity))
-        .then(({ error }) => {
-          if (error) console.error(`Failed to save to ${table}:`, error.message);
-        });
+      enqueueWrite(() => supabase.from(table).insert(toRow(entity)), `save to ${table}`);
       return entity;
     },
 
@@ -123,34 +146,25 @@ export function createSupabaseRepository<T extends Identifiable & Timestamped>(
       const updated = { ...current, ...patch, updatedAt: nowIso() } as T;
       upsertLocal(updated);
       notify();
-      void supabase
-        .from(table)
-        .update(toRow(updated))
-        .eq('id', id)
-        .then(({ error }) => {
-          if (error) console.error(`Failed to update ${table}:`, error.message);
-        });
+      enqueueWrite(() => supabase.from(table).update(toRow(updated)).eq('id', id), `update ${table}`);
       return updated;
     },
 
     remove(id) {
       removeLocal(id);
       notify();
-      void supabase
-        .from(table)
-        .delete()
-        .eq('id', id)
-        .then(({ error }) => {
-          if (error) console.error(`Failed to delete from ${table}:`, error.message);
-        });
+      enqueueWrite(() => supabase.from(table).delete().eq('id', id), `delete from ${table}`);
     },
 
     async importRaw(entities) {
       if (entities.length === 0) return;
       entities.forEach(upsertLocal);
       notify();
-      const { error } = await supabase.from(table).insert(entities.map(toRow));
-      if (error) console.error(`Failed to import into ${table}:`, error.message);
+      // upsert, not insert: rows that already made it into the table on a previous run (or a
+      // previous, partially-failed attempt) get harmlessly overwritten with the same data instead
+      // of erroring the whole batch out on a primary-key conflict — makes this safe to re-run.
+      // Awaited so migrateLocalDataIfNeeded only marks itself done once this has actually landed.
+      await enqueueWrite(() => supabase.from(table).upsert(entities.map(toRow)), `import into ${table}`);
     },
 
     reset() {

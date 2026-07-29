@@ -29,6 +29,7 @@ export { useSectionCollapseContext } from './hooks/useSectionCollapseContext';
 
 export { NodeTree } from './components/NodeTree';
 export { LearningModeSwitcher } from './components/LearningModeSwitcher';
+export { PrintableTopic } from './components/PrintableTopic';
 
 export { NodesIndexPage } from './pages/NodesIndexPage';
 export { NodeDetailPage } from './pages/NodeDetailPage';

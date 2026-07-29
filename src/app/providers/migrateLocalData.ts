@@ -8,13 +8,14 @@ const MIGRATION_FLAG_KEY = 'kb:migratedToCloud';
 
 /**
  * One-time migration for whoever's browser has pre-Supabase data sitting in localStorage from
- * before cross-device sync existed. Runs after the repositories' initial cloud fetch, so it can
- * tell whether the cloud side is genuinely empty (first login post-migration) rather than someone
- * having legitimately deleted everything.
+ * before cross-device sync existed.
  *
  * Uses importRaw (not create) to preserve original ids — node.parentId and section.tagIds
  * reference other rows by id, and regenerating ids on the way in would break every one of those
- * references.
+ * references. importRaw upserts rather than inserts, so this is deliberately *not* gated on the
+ * cloud being empty — safe to force a re-run (clear MIGRATION_FLAG_KEY from localStorage) to
+ * backfill anything an earlier, partially-failed run left out, without duplicating what already
+ * made it across.
  */
 export async function migrateLocalDataIfNeeded(): Promise<void> {
   if (localStorageAdapter.get<boolean>(MIGRATION_FLAG_KEY)) return;
@@ -23,7 +24,7 @@ export async function migrateLocalDataIfNeeded(): Promise<void> {
     const localNodes = localStorageAdapter.get<KnowledgeNode[]>('kb:nodes') ?? [];
     const localTags = localStorageAdapter.get<Tag[]>('kb:tags') ?? [];
 
-    if (localNodes.length > 0 && nodesRepository.getAll().length === 0) {
+    if (localNodes.length > 0) {
       await tagsRepository.importRaw(localTags);
       await nodesRepository.importRaw(localNodes);
     }
