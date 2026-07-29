@@ -986,18 +986,37 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+.section-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.section-view-actions .btn {
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 .section-view-toggle {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
   color: inherit;
+  text-align: left;
+}
+
+.section-view-toggle h3 {
+  overflow-wrap: break-word;
 }
 
 .section-view-toggle span[aria-hidden] {
@@ -1966,6 +1985,29 @@ select:focus {
   .printable-topic h5 {
     color: #000;
     break-after: avoid;
+  }
+
+  .printable-toc {
+    break-after: page;
+  }
+
+  .printable-toc h1 {
+    margin: 0 0 16px;
+  }
+
+  .printable-toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .printable-toc li {
+    margin-bottom: 8px;
+  }
+
+  .printable-toc a {
+    color: #000;
+    text-decoration: none;
   }
 
   .printable-node {

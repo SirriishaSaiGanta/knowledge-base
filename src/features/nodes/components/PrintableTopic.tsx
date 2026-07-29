@@ -71,12 +71,25 @@ export function PrintableTopic({ rootId, onDone }: PrintableTopicProps) {
 
   return createPortal(
     <div className="printable-topic">
+      {entries.length > 1 && (
+        <nav className="printable-toc" aria-label="Contents">
+          <h1>Contents</h1>
+          <ul>
+            {entries.map(({ node, depth }) => (
+              <li key={node.id} style={{ paddingLeft: depth * 18 }}>
+                <a href={`#printable-${node.id}`}>{node.title}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+
       {entries.map(({ node, depth }) => {
         const Heading = headingTag(depth);
         const sections = node.sections.filter((section) => !isSectionEmpty(section));
 
         return (
-          <article key={node.id} className="printable-node">
+          <article key={node.id} id={`printable-${node.id}`} className="printable-node">
             <Heading>{node.title}</Heading>
             {sections.map((section) => (
               <div key={section.id} className="printable-section">

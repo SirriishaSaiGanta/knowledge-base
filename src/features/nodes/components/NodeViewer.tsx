@@ -39,7 +39,7 @@ export function NodeViewer({ node }: { node: KnowledgeNode }) {
       {visible.length === 0 && <p>No content for this mode yet.</p>}
 
       {visible.map((section) => (
-        <SectionView key={section.id} section={section} />
+        <SectionView key={section.id} section={section} nodeId={node.id} />
       ))}
 
       {hidden.length > 0 && (
