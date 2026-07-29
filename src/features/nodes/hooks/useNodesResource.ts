@@ -32,6 +32,15 @@ export function useNodesResource(): NodesResource {
   }, []);
 
   const createNode = useCallback((input: NodeInput) => {
+    // A sibling with the same title (case-/whitespace-insensitive) under the same parent is
+    // treated as "already there" rather than duplicated — matches the Import dialog's skip
+    // behavior, extended to the plain "+" add-topic flow.
+    const normalizedTitle = input.title.trim().toLowerCase();
+    const existing = nodesRepository
+      .getChildren(input.parentId)
+      .find((node) => node.title.trim().toLowerCase() === normalizedTitle);
+    if (existing) return existing;
+
     return nodesRepository.create({ ...input, sections: [] });
   }, []);
 

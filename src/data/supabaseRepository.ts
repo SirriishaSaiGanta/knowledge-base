@@ -3,6 +3,7 @@ import type { Identifiable, Timestamped } from '@shared/types/common';
 import { generateId } from '@shared/utils/id';
 import { nowIso } from '@shared/utils/date';
 import { supabase } from './supabaseClient';
+import { saveErrorStore } from './saveErrorStore';
 
 export interface Repository<T extends Identifiable> {
   getAll(): T[];
@@ -78,7 +79,10 @@ export function createSupabaseRepository<T extends Identifiable & Timestamped>(
     }));
     writeQueue = attempt;
     return attempt.then(({ error }) => {
-      if (error) console.error(`Failed to ${failureContext}:`, error.message);
+      if (error) {
+        console.error(`Failed to ${failureContext}:`, error.message);
+        saveErrorStore.report(`Failed to ${failureContext}: ${error.message}`);
+      }
     });
   }
 

@@ -1,6 +1,7 @@
 import { Suspense, useState, type MouseEvent, type PropsWithChildren, type ReactNode } from 'react';
 import { NodeTree } from '@features/nodes';
 import { useAuth } from '@features/auth';
+import { SaveErrorBanner } from '@shared/components/composite';
 import { Header } from './Header';
 
 export interface AppShellProps extends PropsWithChildren {
@@ -22,6 +23,7 @@ export function AppShell({ sidebarExtra, children }: AppShellProps) {
 
   return (
     <div className="app-shell">
+      <SaveErrorBanner />
       <Header isSidebarOpen={isSidebarOpen} onToggleSidebar={() => setIsSidebarOpen((value) => !value)} />
       <div className="workspace">
         {isSidebarOpen && <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />}
