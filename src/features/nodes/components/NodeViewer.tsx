@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLearningMode } from '../hooks/useLearningMode';
 import { useSectionCollapseContext } from '../hooks/useSectionCollapseContext';
-import { isSectionVisible, isSectionEmpty, SECTION_LABELS } from '../config/sectionRegistry';
+import { isSectionVisible, isSectionEmpty, getSectionLabel } from '../config/sectionRegistry';
 import { SectionView } from './SectionView';
 import type { KnowledgeNode } from '../types/Node';
 
@@ -51,7 +51,7 @@ export function NodeViewer({ node }: { node: KnowledgeNode }) {
               className="btn btn-ghost"
               onClick={() => reveal(section.id)}
             >
-              Show {SECTION_LABELS[section.type]}
+              Show {getSectionLabel(section)}
             </button>
           ))}
         </div>

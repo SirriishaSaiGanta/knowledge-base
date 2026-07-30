@@ -1,7 +1,7 @@
 import { useEffect, type ElementType } from 'react';
 import { createPortal } from 'react-dom';
 import { ErrorBoundary, ImageGallery } from '@shared/components/ui';
-import { SECTION_LABELS, isSectionEmpty } from '../config/sectionRegistry';
+import { getSectionLabel, isSectionEmpty } from '../config/sectionRegistry';
 import { renderSectionView } from './sections/registry';
 import { useNodes } from '../hooks/useNodes';
 import type { KnowledgeNode } from '../types/Node';
@@ -93,9 +93,7 @@ export function PrintableTopic({ rootId, onDone }: PrintableTopicProps) {
             <Heading>{node.title}</Heading>
             {sections.map((section) => (
               <div key={section.id} className="printable-section">
-                <h5>
-                  {section.type === 'markdown' ? section.content.title.trim() || 'Untitled section' : SECTION_LABELS[section.type]}
-                </h5>
+                <h5>{getSectionLabel(section)}</h5>
                 <ErrorBoundary fallback={() => <p>This section couldn&apos;t be exported.</p>}>
                   {renderSectionView(section, 'light')}
                 </ErrorBoundary>

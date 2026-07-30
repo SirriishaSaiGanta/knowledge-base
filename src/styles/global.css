@@ -513,7 +513,6 @@ a {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 22px;
-  max-width: 720px;
 }
 
 .page-header-actions {
@@ -953,7 +952,6 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 720px;
 }
 
 .section-view {
@@ -2077,6 +2075,11 @@ select:focus {
     background: #fff;
     font-size: 12pt;
     line-height: 1.5;
+    /* Every nested card/table/code-block border reads var(--border) — without this override they'd
+       inherit whatever the app's *current* theme has set at :root (dark theme's border is a fairly
+       dark grey), producing harsh dark borders against this forced white/black print palette
+       regardless of which theme was active when the export was triggered. */
+    --border: #dcdbe0;
   }
 
   .printable-topic h1,

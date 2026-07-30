@@ -139,6 +139,12 @@ export function getSectionDefinition<T extends SectionType>(type: T): SectionDef
   return SECTION_REGISTRY.find((definition) => definition.type === type) as unknown as SectionDefinition<T>;
 }
 
+/** 'markdown' sections are repeatable and per-instance-titled — their display name comes from
+ *  their own content, not the shared registry label every other section type uses. */
+export function getSectionLabel(section: Section): string {
+  return section.type === 'markdown' ? section.content.title.trim() || 'Untitled section' : SECTION_LABELS[section.type];
+}
+
 export function isSectionEmpty(section: Section): boolean {
   const definition = getSectionDefinition(section.type);
   // A section with blank text content but attached reference images still has something worth

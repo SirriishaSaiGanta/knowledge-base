@@ -4,7 +4,7 @@ import { useTheme } from '@features/theme';
 import { ErrorBoundary, Button, ImageGallery } from '@shared/components/ui';
 import { ConfirmDialog } from '@shared/components/composite';
 import type { ID } from '@shared/types/common';
-import { SECTION_LABELS } from '../config/sectionRegistry';
+import { getSectionLabel } from '../config/sectionRegistry';
 import { useSectionCollapseContext } from '../hooks/useSectionCollapseContext';
 import { useNodes } from '../hooks/useNodes';
 import { renderSectionView } from './sections/registry';
@@ -20,9 +20,7 @@ export function SectionView({ section, nodeId }: { section: Section; nodeId: ID 
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const isCollapsed = isSectionCollapsed(section.id);
   const tags = allTags.filter((tag) => section.tagIds.includes(tag.id));
-  // 'markdown' sections are repeatable and per-instance-titled — every other type shares one
-  // fixed label across all nodes, so only this one needs its title read from its own content.
-  const label = section.type === 'markdown' ? section.content.title.trim() || 'Untitled section' : SECTION_LABELS[section.type];
+  const label = getSectionLabel(section);
 
   if (isEditing) {
     return (
