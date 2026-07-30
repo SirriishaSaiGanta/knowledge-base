@@ -1,6 +1,6 @@
 import { useEffect, type ElementType } from 'react';
 import { createPortal } from 'react-dom';
-import { ErrorBoundary } from '@shared/components/ui';
+import { ErrorBoundary, ImageGallery } from '@shared/components/ui';
 import { SECTION_LABELS, isSectionEmpty } from '../config/sectionRegistry';
 import { renderSectionView } from './sections/registry';
 import { useNodes } from '../hooks/useNodes';
@@ -99,6 +99,11 @@ export function PrintableTopic({ rootId, onDone }: PrintableTopicProps) {
                 <ErrorBoundary fallback={() => <p>This section couldn&apos;t be exported.</p>}>
                   {renderSectionView(section, 'light')}
                 </ErrorBoundary>
+                {/* Skipped for 'referenceImages' sections — renderSectionView above already
+                    rendered this exact gallery from section.content.images. */}
+                {section.type !== 'referenceImages' && section.images && section.images.length > 0 && (
+                  <ImageGallery images={section.images} />
+                )}
               </div>
             ))}
           </article>

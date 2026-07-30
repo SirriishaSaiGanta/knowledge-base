@@ -14,6 +14,7 @@ export type SectionType =
   | 'interviewQuestions'
   | 'scenarioQuestions'
   | 'references'
+  | 'referenceImages'
   | 'markdown';
 
 export type Difficulty = 'basic' | 'intermediate' | 'advanced';
@@ -118,6 +119,19 @@ export interface ReferencesContent {
   items: ReferenceItem[];
 }
 
+/** An uploaded reference image — `path` is the Storage object path (needed to delete it later),
+ *  `url` is its permanent public URL (what's actually rendered). */
+export interface SectionImage {
+  id: ID;
+  url: string;
+  path: string;
+  caption: string;
+}
+
+export interface ReferenceImagesContent {
+  images: SectionImage[];
+}
+
 /**
  * A freeform, per-instance-titled section — the dynamic counterpart to the typed sections above.
  * Unlike every other section type, a node can have any number of these (one per `#` heading in a
@@ -144,6 +158,7 @@ export interface SectionContentMap {
   interviewQuestions: InterviewQuestionsContent;
   scenarioQuestions: ScenarioQuestionsContent;
   references: ReferencesContent;
+  referenceImages: ReferenceImagesContent;
   markdown: MarkdownSectionContent;
 }
 
@@ -154,6 +169,13 @@ interface SectionBase<T extends SectionType> {
   tagIds: ID[];
   /** Pins the section into Revision mode even if its type isn't normally shown there. */
   markedImportant?: boolean;
+  /** Pins the section into Interview mode even if its type isn't normally shown there — the
+   *  interview-mode counterpart to markedImportant, toggled instantly from the section header
+   *  rather than from inside the edit form. */
+  markedForInterview?: boolean;
+  /** Reference screenshots/diagrams attachable to *any* section, regardless of type — distinct
+   *  from the dedicated 'referenceImages' section type, which is its own standalone gallery. */
+  images?: SectionImage[];
 }
 
 export type Section = { [T in SectionType]: SectionBase<T> }[SectionType];

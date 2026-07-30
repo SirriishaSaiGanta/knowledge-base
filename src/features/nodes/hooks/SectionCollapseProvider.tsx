@@ -5,8 +5,13 @@ import { SectionCollapseContext } from './SectionCollapseContext';
 
 const STORAGE_KEY = 'kb:collapsedSections';
 
+function isIdArray(value: unknown): value is ID[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
 function readStoredIds(): ID[] {
-  return localStorageAdapter.get<ID[]>(STORAGE_KEY) ?? [];
+  const stored = localStorageAdapter.get<ID[]>(STORAGE_KEY);
+  return isIdArray(stored) ? stored : [];
 }
 
 /**

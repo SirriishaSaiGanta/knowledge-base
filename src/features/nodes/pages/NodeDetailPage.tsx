@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader, ConfirmDialog } from '@shared/components/composite';
 import { Button, ErrorBoundary, Input } from '@shared/components/ui';
@@ -26,8 +26,22 @@ export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
   const [titleDraft, setTitleDraft] = useState('');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
 
   const node = nodes.find((item) => item.id === id);
+
+  // Warns on refresh/close-tab while a section has edits since its last "Save section" click —
+  // in-app navigation (switching topics, browser back) isn't covered, since that's a client-side
+  // route change React can't intercept without a data router.
+  useEffect(() => {
+    if (!isEditing || !hasUnsavedChanges) return;
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isEditing, hasUnsavedChanges]);
 
   if (!node) {
     return (
@@ -48,6 +62,14 @@ export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
     const trimmed = titleDraft.trim();
     if (trimmed) renameNode(node!.id, trimmed);
     setIsRenaming(false);
+  }
+
+  function handleToggleEditing() {
+    if (isEditing && hasUnsavedChanges) {
+      setIsConfirmingDiscard(true);
+      return;
+    }
+    setIsEditing((value) => !value);
   }
 
   return (
@@ -75,7 +97,7 @@ export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
               <Button variant="secondary" onClick={startRenaming}>
                 Rename
               </Button>
-              <Button variant="secondary" onClick={() => setIsEditing((value) => !value)}>
+              <Button variant="secondary" onClick={handleToggleEditing}>
                 {isEditing ? 'Done editing' : 'Edit content'}
               </Button>
               <Button variant="secondary" onClick={() => setIsExporting(true)} disabled={isExporting}>
@@ -103,7 +125,11 @@ export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
           </div>
         )}
       >
-        {isEditing ? <NodeEditor key={node.id} node={node} /> : <NodeViewer key={node.id} node={node} />}
+        {isEditing ? (
+          <NodeEditor key={node.id} node={node} onDirtyChange={setHasUnsavedChanges} />
+        ) : (
+          <NodeViewer key={node.id} node={node} />
+        )}
       </ErrorBoundary>
 
       {isExporting && <PrintableTopic rootId={node.id} onDone={() => setIsExporting(false)} />}
@@ -117,6 +143,18 @@ export function NodeDetailPage({ renderExtraActions }: NodeDetailPageProps) {
         onConfirm={() => {
           removeNode(node.id);
           navigate('/nodes');
+        }}
+      />
+
+      <ConfirmDialog
+        open={isConfirmingDiscard}
+        title="Discard unsaved changes?"
+        message="One or more sections have edits that haven't been saved. Leaving edit mode now will discard them."
+        confirmLabel="Discard"
+        onCancel={() => setIsConfirmingDiscard(false)}
+        onConfirm={() => {
+          setIsConfirmingDiscard(false);
+          setIsEditing(false);
         }}
       />
     </section>

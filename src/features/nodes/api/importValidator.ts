@@ -10,6 +10,7 @@ import type {
   MarkdownSectionContent,
   RealWorldExampleContent,
   RealWorldProblemContent,
+  ReferenceImagesContent,
   ReferencesContent,
   ScenarioQuestionsContent,
   SectionType,
@@ -252,6 +253,23 @@ function validateReferences(value: unknown, path: string, errors: ImportValidati
   return { items };
 }
 
+/** JSON import only ever provides a plain external `url` (never a Storage `path`, since the image
+ *  wasn't uploaded through this app) — deleting such an entry later is a harmless no-op remove. */
+function validateReferenceImages(value: unknown, path: string, errors: ImportValidationError[]): ReferenceImagesContent {
+  const arr = unwrapListValue(value, 'images', path, errors);
+  const images = arr.map((item, index) => {
+    const itemPath = `${path}.images[${index}]`;
+    const itemObj = asRecord(item, itemPath, errors) ?? {};
+    return {
+      id: generateId(),
+      url: requiredString(itemObj.url, `${itemPath}.url`, errors),
+      path: '',
+      caption: optionalString(itemObj.caption, `${itemPath}.caption`, errors),
+    };
+  });
+  return { images };
+}
+
 export type ContentValidator = (value: unknown, path: string, errors: ImportValidationError[]) => unknown;
 
 /**
@@ -274,6 +292,7 @@ export const SECTION_VALIDATORS: Record<SectionType, ContentValidator> = {
   interviewQuestions: validateInterviewQuestions,
   scenarioQuestions: validateScenarioQuestions,
   references: validateReferences,
+  referenceImages: validateReferenceImages,
   markdown: validateMarkdownSection,
 };
 

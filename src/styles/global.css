@@ -9,7 +9,7 @@
   --text-h: #0f0f14;
   --bg: #fff;
   --bg-raised: #faf9fb;
-  --border: #e7e6ea;
+  --border: #eeedf0;
   --code-bg: #f4f3f6;
   --accent: #7c3aed;
   --accent-bg: rgba(124, 58, 237, 0.08);
@@ -1002,6 +1002,33 @@ select:focus {
   font-size: 12px;
 }
 
+.interview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.interview-toggle:hover {
+  border-color: var(--accent);
+}
+
+.interview-toggle.active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
 .section-view-toggle {
   display: flex;
   align-items: center;
@@ -1131,6 +1158,20 @@ select:focus {
   align-items: center;
   gap: 8px;
   font-size: 13px;
+}
+
+.section-editor-images {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-editor-images-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
 }
 
 .node-title-form {
@@ -1413,6 +1454,66 @@ select:focus {
   max-height: 100%;
   border-radius: 8px;
   box-shadow: var(--shadow-md);
+  cursor: default;
+}
+
+/* Reference images — the cross-cutting per-section gallery and the dedicated
+   'referenceImages' section type share these rules via the shared ImageGallery/ImageUploader
+   components. */
+
+.image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.image-gallery-item {
+  margin: 0;
+}
+
+.image-gallery-item img {
+  width: 100%;
+  display: block;
+}
+
+.image-gallery-item figcaption {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.image-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.image-uploader-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.image-uploader-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.image-uploader-item img {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.image-uploader-add {
+  align-self: flex-start;
+  cursor: pointer;
+}
+
+.image-uploader-add.disabled {
+  opacity: 0.6;
   cursor: default;
 }
 
@@ -2020,7 +2121,6 @@ select:focus {
 
   .printable-section {
     margin: 12px 0 20px;
-    break-inside: avoid;
   }
 
   .printable-section h5 {

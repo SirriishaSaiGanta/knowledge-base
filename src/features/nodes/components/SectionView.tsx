@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TagBadge, useTags } from '@features/tags';
 import { useTheme } from '@features/theme';
-import { ErrorBoundary, Button } from '@shared/components/ui';
+import { ErrorBoundary, Button, ImageGallery } from '@shared/components/ui';
 import { ConfirmDialog } from '@shared/components/composite';
 import type { ID } from '@shared/types/common';
 import { SECTION_LABELS } from '../config/sectionRegistry';
@@ -57,6 +57,19 @@ export function SectionView({ section, nodeId }: { section: Section; nodeId: ID 
               ))}
             </div>
           )}
+          <button
+            type="button"
+            className={section.markedForInterview ? 'interview-toggle active' : 'interview-toggle'}
+            aria-pressed={Boolean(section.markedForInterview)}
+            title={
+              section.markedForInterview
+                ? 'Shown in Interview mode — click to unmark'
+                : 'Mark for Interview mode'
+            }
+            onClick={() => updateSection(nodeId, section.id, { markedForInterview: !section.markedForInterview })}
+          >
+            🎤 Interview
+          </button>
           <Button type="button" variant="ghost" onClick={() => setIsEditing(true)}>
             Edit
           </Button>
@@ -79,6 +92,12 @@ export function SectionView({ section, nodeId }: { section: Section; nodeId: ID 
           >
             {renderSectionView(section, theme)}
           </ErrorBoundary>
+
+          {/* Skipped for 'referenceImages' sections — renderSectionView above already rendered
+              this exact gallery from section.content.images, so this would just duplicate it. */}
+          {section.type !== 'referenceImages' && section.images && section.images.length > 0 && (
+            <ImageGallery images={section.images} />
+          )}
         </div>
       )}
 

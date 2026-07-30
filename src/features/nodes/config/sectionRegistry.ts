@@ -113,6 +113,13 @@ export const SECTION_REGISTRY: AnySectionDefinition[] = [
     isEmpty: (c) => c.items.length === 0,
   },
   {
+    type: 'referenceImages',
+    label: 'Reference Images',
+    modes: ['study', 'revision', 'interview'],
+    emptyContent: () => ({ images: [] }),
+    isEmpty: (c) => c.images.length === 0,
+  },
+  {
     // Repeatable — a node can have any number of these. Its display title comes from the
     // content itself (content.title), not this label; see SectionView/SectionEditor headers.
     type: 'markdown',
@@ -134,7 +141,9 @@ export function getSectionDefinition<T extends SectionType>(type: T): SectionDef
 
 export function isSectionEmpty(section: Section): boolean {
   const definition = getSectionDefinition(section.type);
-  return definition.isEmpty(section.content as never);
+  // A section with blank text content but attached reference images still has something worth
+  // showing/exporting, so the cross-cutting `images` field counts too.
+  return definition.isEmpty(section.content as never) && (section.images?.length ?? 0) === 0;
 }
 
 export function isSectionVisible(section: Section, mode: LearningMode, revealedIds: Set<string>): boolean {
@@ -142,6 +151,7 @@ export function isSectionVisible(section: Section, mode: LearningMode, revealedI
   return (
     definition.modes.includes(mode) ||
     (mode === 'revision' && Boolean(section.markedImportant)) ||
+    (mode === 'interview' && Boolean(section.markedForInterview)) ||
     revealedIds.has(section.id)
   );
 }

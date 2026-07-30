@@ -1,10 +1,22 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import type { ID } from '@shared/types/common';
 import { generateId } from '@shared/utils/id';
+import { deleteSectionImage } from '@data/sectionImageStorage';
 import { nodesRepository } from '../api/nodesRepository';
 import type { KnowledgeNode, NodeInput, TreeNode } from '../types/Node';
 import type { Section, SectionInput } from '../types/Section';
 import { buildTree } from './buildTree';
+
+/** Every Storage object path a section references — its cross-cutting gallery, plus its own
+ *  content.images if it's a 'referenceImages' section — so removing the section can clean up
+ *  the underlying Storage objects instead of leaving them orphaned. */
+function collectSectionImagePaths(section: Section): string[] {
+  const paths = (section.images ?? []).map((image) => image.path);
+  if (section.type === 'referenceImages') {
+    paths.push(...section.content.images.map((image) => image.path));
+  }
+  return paths.filter(Boolean);
+}
 
 export interface NodesResource {
   nodes: KnowledgeNode[];
@@ -17,6 +29,10 @@ export interface NodesResource {
   addSection: (nodeId: ID, input: SectionInput) => void;
   updateSection: (nodeId: ID, sectionId: ID, patch: Partial<SectionInput>) => void;
   removeSection: (nodeId: ID, sectionId: ID) => void;
+  /** Looks up a child by title (case-/whitespace-insensitive) against the live repository, not a
+   *  React-state snapshot — safe to call repeatedly within a single synchronous import pass, where
+   *  siblings created earlier in the same pass must be visible to the next lookup. */
+  findChildByTitle: (parentId: ID | null, title: string) => KnowledgeNode | undefined;
 }
 
 export function useNodesResource(): NodesResource {
@@ -71,6 +87,11 @@ export function useNodesResource(): NodesResource {
     nodesRepository.removeSubtree(id);
   }, []);
 
+  const findChildByTitle = useCallback((parentId: ID | null, title: string) => {
+    const normalized = title.trim().toLowerCase();
+    return nodesRepository.getChildren(parentId).find((node) => node.title.trim().toLowerCase() === normalized);
+  }, []);
+
   const addSection = useCallback(
     (nodeId: ID, input: SectionInput) => {
       const node = nodesRepository.getById(nodeId);
@@ -97,7 +118,9 @@ export function useNodesResource(): NodesResource {
     (nodeId: ID, sectionId: ID) => {
       const node = nodesRepository.getById(nodeId);
       if (!node) return;
+      const removed = node.sections.find((section) => section.id === sectionId);
       patchNode(nodeId, { sections: node.sections.filter((section) => section.id !== sectionId) });
+      if (removed) collectSectionImagePaths(removed).forEach((path) => void deleteSectionImage(path));
     },
     [patchNode],
   );
@@ -112,5 +135,6 @@ export function useNodesResource(): NodesResource {
     addSection,
     updateSection,
     removeSection,
+    findChildByTitle,
   };
 }

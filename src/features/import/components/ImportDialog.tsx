@@ -77,7 +77,7 @@ export function ImportDialog({
   targetNode,
   onClose,
 }: ImportDialogProps) {
-  const { nodes, tree, createNode, addSection, removeSection } = useNodes();
+  const { nodes, tree, createNode, addSection, removeSection, findChildByTitle } = useNodes();
   const tags = useTags();
   const isSelfImport = Boolean(targetNode);
 
@@ -158,11 +158,6 @@ export function ImportDialog({
     });
   }
 
-  function findChildByTitle(pid: ID | null, childTitle: string) {
-    const normalized = childTitle.trim().toLowerCase();
-    return nodes.find((node) => node.parentId === pid && node.title.trim().toLowerCase() === normalized);
-  }
-
   function handleImport() {
     if (!parsed) return;
 
@@ -175,6 +170,10 @@ export function ImportDialog({
         selfImportStrategy,
       );
       setSummary(result);
+      // Clearing the parsed payload hides the Import button until the user validates again —
+      // without this, a second click (or a slow double-click) would re-run the same import and,
+      // under the 'merge' strategy, duplicate every section it just added.
+      setParsed(null);
       return;
     }
 
@@ -187,6 +186,7 @@ export function ImportDialog({
       strategy,
     );
     setSummary(result);
+    setParsed(null);
   }
 
   return (
