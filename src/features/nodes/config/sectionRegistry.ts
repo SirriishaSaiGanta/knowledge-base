@@ -24,7 +24,7 @@ export const SECTION_REGISTRY: AnySectionDefinition[] = [
   {
     type: 'shortDescription',
     label: 'Short Description',
-    modes: ['study', 'revision', 'interview'],
+    modes: ['study', 'revision'],
     emptyContent: () => '',
     isEmpty: isBlank,
   },
@@ -52,7 +52,7 @@ export const SECTION_REGISTRY: AnySectionDefinition[] = [
   {
     type: 'realWorldExample',
     label: 'Real-world Example',
-    modes: ['study', 'interview'],
+    modes: ['study'],
     emptyContent: () => ({ examples: [] }),
     isEmpty: (c) => c.examples.length === 0,
   },
@@ -115,7 +115,7 @@ export const SECTION_REGISTRY: AnySectionDefinition[] = [
   {
     type: 'referenceImages',
     label: 'Reference Images',
-    modes: ['study', 'revision', 'interview'],
+    modes: ['study', 'revision'],
     emptyContent: () => ({ images: [] }),
     isEmpty: (c) => c.images.length === 0,
   },
@@ -124,7 +124,7 @@ export const SECTION_REGISTRY: AnySectionDefinition[] = [
     // content itself (content.title), not this label; see SectionView/SectionEditor headers.
     type: 'markdown',
     label: 'Section',
-    modes: ['study', 'revision', 'interview'],
+    modes: ['study', 'revision'],
     emptyContent: () => ({ title: '', body: '' }),
     isEmpty: (c) => isBlank(c.title) && isBlank(c.body),
   },
